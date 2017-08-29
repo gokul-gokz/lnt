@@ -1,0 +1,13 @@
+<launch>
+  <include file="$(find cool400_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <node name="kinematic_model_tutorial_cool400"
+        pkg="cool400_tests"
+        type="kinematic_model_tutorial_cool400"
+        respawn="false" output="screen">
+    <rosparam command="load"
+              file="$(find cool400_moveit_config)/config/kinematics.yaml"/>
+  </node>
+</launch>
