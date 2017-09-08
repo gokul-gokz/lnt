@@ -38,9 +38,6 @@
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64.h>
 
-//Joystick
-#include <sensor_msgs/Joy.h>
-
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/move_group_interface/move_group.h>
@@ -62,10 +59,17 @@
 //actionlib client
 #include <actionlib/client/simple_action_client.h>
 
+//Publisher topic for trajectory messages
+//ros::Publisher joint_pub = n.advertise<trajectory_msgs::JointTrajectory>("set_joint_trajectory", 1);
 
+
+
+//ros::Subscriber* sub;
+
+//Subscriber callback
+std::vector<double> joint_value;
 int joint_val[6];
 int flag;
-int x,y;
 
 
 void joint_states_Callback(const sensor_msgs::JointState::ConstPtr& jointstates)
@@ -75,20 +79,13 @@ void joint_states_Callback(const sensor_msgs::JointState::ConstPtr& jointstates)
    
    if(i<=6)
    {
-	  //ROS_INFO("joint%d : [%f]",i , jointstates->position[i]);
+	  ROS_INFO("joint%d : [%f]",i , jointstates->position[i]);
 	  joint_val[i] = jointstates->position[i];
    }
   }
-  }
-  
-void joyCallback(const sensor_msgs::Joy::ConstPtr& msg)
-{
- ros::NodeHandle node_handle1;	
- //for (unsigned i = 0; i < msg->axes.size(); ++i) {
-    //ROS_INFO("Axis %d is now at position %f", i, msg->axes[i]);
- //}
- x=msg->axes[6];
- y=msg->axes[7];
+ // flag=0;
+  //sub->shutdown(); 
+  //return;
  }
 
 
@@ -97,17 +94,13 @@ int main(int argc, char **argv)
 {
   ros::init (argc, argv, "cool400_kinematics");
   
-  
   ros::NodeHandle n;
-  
   ros::Subscriber sub = n.subscribe("joint_states", 1000, joint_states_Callback);
-  ros::Subscriber sub1 = n.subscribe("joy", 1000, joyCallback);
-  
   ROS_INFO("Started");
   
   //ros::Rate r(1);
   
-  ros::AsyncSpinner spinner(3);
+  ros::AsyncSpinner spinner(1);
   spinner.start();
 
   
@@ -209,39 +202,16 @@ int main(int argc, char **argv)
   //Create a robot trajectory object
   robot_trajectory::RobotTrajectory rt(group.getCurrentState()->getRobotModel(), "manipulator");
    
-   
-   
- while(ros::ok())
+ 
+  
+  //This loop does the incrementation of x coordinate(replica for joystick)
+  
+ for(int i=0;i<15;i++)
  { 
-  //ROS_INFO("x=%d",x); 
-  //Create a eigen vector for incrementation
+      
+  //Create a eigen vector for incrementing the X coordinate of translation
+  const Eigen::Vector3d pos = Eigen::Vector3d(0.005,0,0);
   
-  Eigen::Vector3d pos = Eigen::Vector3d(0,0,0);
-  
-  //Check the joystick axis movement
-  if(x==1)
-   {	const Eigen::Vector3d pos1 = Eigen::Vector3d(0.01,0,0);
-	    pos=pos1;
-	    flag=1;
-	   }
-  else if(x==-1) 
-   {const Eigen::Vector3d pos2 = Eigen::Vector3d(-0.01,0,0);
-	   pos=pos2;
-	   flag=1;}
-  else if(y==1) 
-   {const Eigen::Vector3d pos2 = Eigen::Vector3d(0,0.01,0);
-	   pos=pos2;
-	   flag=1;}
-  else if(y==-1) 
-   {const Eigen::Vector3d pos2 = Eigen::Vector3d(0,-0.01,0);
-	   pos=pos2;
-	   flag=1;}	   	   
-  else
-   {const Eigen::Vector3d pos3 = Eigen::Vector3d(0.000,0,0);
-	   pos=pos3;
-	   flag=0;} 
-if(flag==1)
-{  
   end_effector_state_new.translation() = end_effector_state_new.translation() + pos;
   ROS_INFO_STREAM("Incremented _translation: " << end_effector_state_new.translation());
   ROS_INFO_STREAM("Incremented _orientation: " <<end_effector_state_new.rotation());
@@ -397,10 +367,12 @@ if(flag==1)
     
    }
  }
-}
-
- 
+ //spinner.stop();
  ros::shutdown(); 
- 
+ /*for(int j=0;j<2;j++) 
+ {
+ ros::spinOnce();
+ r.sleep();
+ }*/
  return 0;
 }
