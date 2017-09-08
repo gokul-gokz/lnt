@@ -64,10 +64,11 @@
 
 
 
-ros::Subscriber* sub;
+//ros::Subscriber* sub;
 
 //Subscriber callback
 std::vector<double> joint_value;
+int joint_val[6];
 int flag;
 
 
@@ -79,12 +80,12 @@ void joint_states_Callback(const sensor_msgs::JointState::ConstPtr& jointstates)
    if(i<=6)
    {
 	  ROS_INFO("joint%d : [%f]",i , jointstates->position[i]);
-	  joint_value[i] = jointstates->position[i];
+	  joint_val[i] = jointstates->position[i];
    }
   }
-  flag=0;
-  sub->shutdown(); 
-  return;
+ // flag=0;
+  //sub->shutdown(); 
+  //return;
  }
 
 
@@ -94,6 +95,14 @@ int main(int argc, char **argv)
   ros::init (argc, argv, "cool400_kinematics");
   
   ros::NodeHandle n;
+  ros::Subscriber sub = n.subscribe("joint_states", 1000, joint_states_Callback);
+  ROS_INFO("Started");
+  
+  //ros::Rate r(1);
+  
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+
   
   //Load robot model
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
@@ -127,11 +136,11 @@ int main(int argc, char **argv)
   //sub = new ros::Subscriber;
   
   
- // *sub = n.subscribe("joint_states", 10, joint_states_Callback);
+ 
  
  
   //Send to initial position
-    /*geometry_msgs::Pose start_pose;
+    geometry_msgs::Pose start_pose;
     
     start_pose.position.x = -0.123667531637;
     start_pose.position.y = 0.107269324839;
@@ -146,8 +155,8 @@ int main(int argc, char **argv)
     bool success = group.plan(my_plan);
     sleep(2.0);
     ROS_INFO("plan success ");   
-    //group.move();
-    //sleep(5.0);*/
+    group.move();
+    sleep(7.0);
   
   
   // Initial postion
@@ -291,7 +300,7 @@ int main(int argc, char **argv)
   
   bool check;
   check=group.asyncExecute(my_plan1);
-  sleep(5.0);
+  sleep(3.0);
   ROS_INFO("Executed trajectory %s",check?"SUCCEDED":"FAILED");
    
    
@@ -350,7 +359,7 @@ int main(int argc, char **argv)
    
      loop_rate.sleep();
       }*/
-     }
+     } 
    else
    {
      ROS_INFO("Did not find IK solution");
@@ -358,5 +367,12 @@ int main(int argc, char **argv)
     
    }
  }
-  return 0;
+ //spinner.stop();
+ ros::shutdown(); 
+ /*for(int j=0;j<2;j++) 
+ {
+ ros::spinOnce();
+ r.sleep();
+ }*/
+ return 0;
 }
