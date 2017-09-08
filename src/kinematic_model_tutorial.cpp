@@ -47,6 +47,23 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/robot_state/conversions.h>
 
+//Trajectory generation
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <vector>
+
+//Moveit trajectory generation
+#include <moveit/robot_trajectory/robot_trajectory.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+
+//actionlib client
+#include <actionlib/client/simple_action_client.h>
+
+//Publisher topic for trajectory messages
+//ros::Publisher joint_pub = n.advertise<trajectory_msgs::JointTrajectory>("set_joint_trajectory", 1);
+
+
+
 ros::Subscriber* sub;
 
 //Subscriber callback
@@ -111,6 +128,26 @@ int main(int argc, char **argv)
   
   
  // *sub = n.subscribe("joint_states", 10, joint_states_Callback);
+ 
+ 
+  //Send to initial position
+    /*geometry_msgs::Pose start_pose;
+    
+    start_pose.position.x = -0.123667531637;
+    start_pose.position.y = 0.107269324839;
+    start_pose.position.z =  0.319631131811; 
+    start_pose.orientation.x = 0.00455691412639;
+    start_pose.orientation.y =  0.000353704970993;
+    start_pose.orientation.z = -0.715119034834;
+    start_pose.orientation.w = 0.698987750568;
+    group.setPoseTarget(start_pose); 
+    
+    moveit::planning_interface::MoveGroup::Plan my_plan;
+    bool success = group.plan(my_plan);
+    sleep(2.0);
+    ROS_INFO("plan success ");   
+    //group.move();
+    //sleep(5.0);*/
   
   
   // Initial postion
@@ -134,6 +171,29 @@ int main(int argc, char **argv)
   //Copy the FK solution and perform operations
   
   Eigen::Affine3d end_effector_state_new = end_effector_state;
+  
+  //Create a client for sending a trajectory
+   actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> move("/cool400_trajectory_controller/follow_joint_trajectory", true);
+   move.waitForServer();
+   ROS_INFO("Connected to server"); 
+   
+  //Create a trajectory msg 
+  moveit_msgs::RobotTrajectory trajectory;
+  
+  trajectory_msgs::JointTrajectory traj;
+  
+  //Push the joint names
+  traj.joint_names.push_back("joint1");
+  traj.joint_names.push_back("joint2");
+  traj.joint_names.push_back("joint3");
+  traj.joint_names.push_back("joint4");
+  traj.joint_names.push_back("joint5");
+  traj.joint_names.push_back("joint6");
+  
+  //Create a robot trajectory object
+  robot_trajectory::RobotTrajectory rt(group.getCurrentState()->getRobotModel(), "manipulator");
+   
+ 
   
   //This loop does the incrementation of x coordinate(replica for joystick)
   
@@ -193,11 +253,48 @@ int main(int argc, char **argv)
     {
       ROS_INFO("Joint %s: %f", joint_names[i].c_str(), joint_values[i]);
     }
-   }
-   else
-   {
-     ROS_INFO("Did not find IK solution");
-   } 
+      
+   //Populate the trajectory with joint values
+   
+   trajectory_msgs::JointTrajectoryPoint msg;
+   
+   msg.positions.push_back(joint_values[0]);
+   msg.positions.push_back(joint_values[1]);
+   msg.positions.push_back(joint_values[2]);
+   msg.positions.push_back(joint_values[3]);
+   msg.positions.push_back(joint_values[4]);
+   msg.positions.push_back(joint_values[5]);
+   
+   traj.points.push_back(msg);
+   traj.header.stamp = ros::Time::now();
+   
+   
+  //Set the robot trajectory message with start state and the required joint trajectory 
+  rt.setRobotTrajectoryMsg(*group.getCurrentState(), traj);
+  
+   robot_state::RobotState& state = *group.getCurrentState();
+   
+   //ROS_INFO_STREAM("Current_state"<<state);
+   
+   
+  // create an IterativeParabolicTimeParameterization object
+  trajectory_processing::IterativeParabolicTimeParameterization iptp;
+  bool success;
+  success = iptp.computeTimeStamps(rt);
+  ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+  
+  
+  //Send the trajectory to move group node to execute
+  rt.getRobotTrajectoryMsg(trajectory);
+  moveit::planning_interface::MoveGroup::Plan my_plan1;
+  my_plan1.trajectory_ = trajectory;
+  
+  bool check;
+  check=group.asyncExecute(my_plan1);
+  sleep(5.0);
+  ROS_INFO("Executed trajectory %s",check?"SUCCEDED":"FAILED");
+   
+   
    
    //If Ik solution found, send it to joints
    
@@ -216,7 +313,7 @@ int main(int argc, char **argv)
    ros::Publisher joint6 = n.advertise<std_msgs::Float64>("/joint6_controller/command", 1);
     int k=0,i;
   
-    ros::Rate loop_rate(2);
+   /*ros::Rate loop_rate(2);
 	for(int i=0; i<6; i++)
 	{
 	   k=i*0.1;
@@ -252,7 +349,12 @@ int main(int argc, char **argv)
      
    
      loop_rate.sleep();
-      }
+      }*/
+     }
+   else
+   {
+     ROS_INFO("Did not find IK solution");
+   } 
     
    }
  }
