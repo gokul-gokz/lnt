@@ -79,7 +79,8 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   
   //Load robot model
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+  
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   planning_scene::PlanningScene planning_scene(kinematic_model);
   ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
@@ -88,7 +89,7 @@ int main(int argc, char **argv)
   moveit::planning_interface::MoveGroup group("manipulator");
   
     
-  //Create a robot state and assign default values
+  //Creating a robot state and assign default values
   robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
   kinematic_state->setToDefaultValues();
   
@@ -113,17 +114,25 @@ int main(int argc, char **argv)
  // *sub = n.subscribe("joint_states", 10, joint_states_Callback);
   
   
-  // Initial postion
-  
-  joint_values[0] = -2.351592547828688;
-  joint_values[1] = -0.8283496254582462;
-  joint_values[2] = 1.8177672336444848;
-  joint_values[3] = -0.26691265709210155;
-  joint_values[4] = 0.7976700097005334;
-  joint_values[5] = 0.4049709280018093;
-  
+ for(int i=0;i<15;i++)
+ { 
+  joint_values[0] = -2.351592547828688+i*0.2;
+  joint_values[1] = -0.8283496254582462+i*0.2;
+  joint_values[2] = 1.8177672336444848+i*0.2;
+  joint_values[3] = -0.26691265709210155+i*0.2;
+  joint_values[4] = 0.7976700097005334+i*0.2;
+  joint_values[5] = 0.4049709280018093+i*0.2;
   kinematic_state->setJointGroupPositions(joint_model_group, joint_values);
   current_state.setJointGroupPositions(joint_model_group, joint_values);
+  
+  
+  
+ //Assigning the cool400hardware values to joint 
+  //for(std::size_t i = 0; i < joint_names.size(); ++i)
+  //{
+    //ROS_INFO("Joint %s: %f", joint_names[i].c_str(), joint_values[i]);
+  //}
+  
   
   //Find the FK for current state
   
@@ -131,23 +140,7 @@ int main(int argc, char **argv)
   ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
   ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
   
-  //Copy the FK solution and perform operations
   
-  Eigen::Affine3d end_effector_state_new = end_effector_state;
-  
-  //This loop does the incrementation of x coordinate(replica for joystick)
-  
- for(int i=0;i<15;i++)
- { 
-      
-  //Create a eigen vector for incrementing the X coordinate of translation
-  const Eigen::Vector3d pos = Eigen::Vector3d(0.005,0,0);
-  
-  end_effector_state_new.translation() = end_effector_state_new.translation() + pos;
-  ROS_INFO_STREAM("Incremented _translation: " << end_effector_state_new.translation());
-  ROS_INFO_STREAM("Incremented _orientation: " <<end_effector_state_new.rotation());
-  
-   
   
   //Self collision checking
    
@@ -160,7 +153,7 @@ int main(int argc, char **argv)
   collision_request.group_name = "manipulator";
   collision_result.clear();
   planning_scene.checkSelfCollision(collision_request, collision_result);
-  ROS_INFO_STREAM("Current state is "
+  ROS_INFO_STREAM("Test 3: Current state is "
                   << (collision_result.collision ? "in" : "not in")
                   << " self collision");
                
@@ -174,7 +167,6 @@ int main(int argc, char **argv)
              it->first.second.c_str());
   }
   
-  
  // Find IK if no collision occurs
   
  if(!collision_result.collision)
@@ -183,7 +175,7 @@ int main(int argc, char **argv)
   
   //IK for the state
   
-   bool found_ik = kinematic_state->setFromIK(joint_model_group,end_effector_state_new, 10, 0.1);
+   bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
 
   // Now, we can print out the IK solution (if found):
   if (found_ik)
@@ -198,8 +190,6 @@ int main(int argc, char **argv)
    {
      ROS_INFO("Did not find IK solution");
    } 
-   
-   //If Ik solution found, send it to joints
    
    std_msgs::Float64 msg1,msg2,msg3,msg4,msg5,msg6;
   
@@ -235,7 +225,7 @@ int main(int argc, char **argv)
     
       msg6.data = joint_values[5];
       
-       
+       ROS_INFO("Hi %f",msg4.data);
      
       joint1.publish(msg1);
     
