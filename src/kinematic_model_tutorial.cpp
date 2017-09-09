@@ -63,7 +63,7 @@
 #include <actionlib/client/simple_action_client.h>
 
 
-int joint_val[6];
+float joint_val[6];
 int flag;
 int x,y;
 
@@ -100,19 +100,18 @@ int main(int argc, char **argv)
   
   ros::NodeHandle n;
   
+  //Subscriber for joint states and joystick values
   ros::Subscriber sub = n.subscribe("joint_states", 1000, joint_states_Callback);
   ros::Subscriber sub1 = n.subscribe("joy", 1000, joyCallback);
-  
   ROS_INFO("Started");
   
-  //ros::Rate r(1);
-  
+  //spinner thread for subscribers
   ros::AsyncSpinner spinner(3);
   spinner.start();
 
   
   //Load robot model
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   planning_scene::PlanningScene planning_scene(kinematic_model);
   ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
@@ -137,18 +136,9 @@ int main(int argc, char **argv)
   std::vector<double> joint_values;
   kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
   kinematic_state->setToRandomPositions(joint_model_group);
-  flag = 1;
-  //Subscribing joint values of joints
-  
-  //sub = new ros::Subscriber;
-  
-  
- 
- 
- 
-  //Send to initial position
+   
+   //Send to initial position
     geometry_msgs::Pose start_pose;
-    
     start_pose.position.x = -0.123667531637;
     start_pose.position.y = 0.107269324839;
     start_pose.position.z =  0.319631131811; 
@@ -160,7 +150,7 @@ int main(int argc, char **argv)
     
     moveit::planning_interface::MoveGroup::Plan my_plan;
     bool success = group.plan(my_plan);
-    sleep(2.0);
+    //sleep(2.0);
     ROS_INFO("plan success ");   
     group.move();
     sleep(7.0);
@@ -168,12 +158,22 @@ int main(int argc, char **argv)
   
   // Initial postion
   
-  joint_values[0] = -2.351592547828688;
+  /*joint_values[0] = -2.351592547828688;
   joint_values[1] = -0.8283496254582462;
   joint_values[2] = 1.8177672336444848;
   joint_values[3] = -0.26691265709210155;
   joint_values[4] = 0.7976700097005334;
-  joint_values[5] = 0.4049709280018093;
+  joint_values[5] = 0.4049709280018093;*/
+  
+  // 
+  joint_values[0] = joint_val[0];
+  joint_values[1] = joint_val[1];
+  joint_values[2] = joint_val[2];
+  joint_values[3] = joint_val[3];
+  joint_values[4] = joint_val[4];
+  joint_values[5] = joint_val[5];
+  
+  
   
   kinematic_state->setJointGroupPositions(joint_model_group, joint_values);
   current_state.setJointGroupPositions(joint_model_group, joint_values);
