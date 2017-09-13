@@ -137,7 +137,7 @@ int main(int argc, char **argv)
   kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
   kinematic_state->setToRandomPositions(joint_model_group);
    
-   //Send to initial position
+  /* //Send to initial position
     geometry_msgs::Pose start_pose;
     start_pose.position.x = -0.123667531637;
     start_pose.position.y = 0.107269324839;
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
     //sleep(2.0);
     ROS_INFO("plan success ");   
     group.move();
-    sleep(7.0);
+    sleep(4.0);*/
   
   
   // Initial postion
@@ -165,7 +165,8 @@ int main(int argc, char **argv)
   joint_values[4] = 0.7976700097005334;
   joint_values[5] = 0.4049709280018093;*/
   
-  // 
+  
+  //Assigning joint values subscribed from joint states to joint values vector 
   joint_values[0] = joint_val[0];
   joint_values[1] = joint_val[1];
   joint_values[2] = joint_val[2];
@@ -173,20 +174,19 @@ int main(int argc, char **argv)
   joint_values[4] = joint_val[4];
   joint_values[5] = joint_val[5];
   
-  
-  
+  //Creating kinematic state for ik and fk calculation
   kinematic_state->setJointGroupPositions(joint_model_group, joint_values);
+  
+  //Creating current state for collision checking
   current_state.setJointGroupPositions(joint_model_group, joint_values);
   
   //Find the FK for current state
-  
   const Eigen::Affine3d &end_effector_state = kinematic_state->getGlobalLinkTransform("link6");
   ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
   ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
   
   //Copy the FK solution and perform operations
-  
-  Eigen::Affine3d end_effector_state_new = end_effector_state;
+   Eigen::Affine3d end_effector_state_new = end_effector_state;
   
   //Create a client for sending a trajectory
    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> move("/cool400_trajectory_controller/follow_joint_trajectory", true);
@@ -213,10 +213,11 @@ int main(int argc, char **argv)
    
  while(ros::ok())
  { 
+ 
   //ROS_INFO("x=%d",x); 
+ 
   //Create a eigen vector for incrementation
-  
-  Eigen::Vector3d pos = Eigen::Vector3d(0,0,0);
+   Eigen::Vector3d pos = Eigen::Vector3d(0,0,0);
   
   //Check the joystick axis movement
   if(x==1)
@@ -240,19 +241,17 @@ int main(int argc, char **argv)
    {const Eigen::Vector3d pos3 = Eigen::Vector3d(0.000,0,0);
 	   pos=pos3;
 	   flag=0;} 
-if(flag==1)
-{  
+ if(flag==1)
+ {  
   end_effector_state_new.translation() = end_effector_state_new.translation() + pos;
   ROS_INFO_STREAM("Incremented _translation: " << end_effector_state_new.translation());
   ROS_INFO_STREAM("Incremented _orientation: " <<end_effector_state_new.rotation());
-  
-   
-  
+    
   //Self collision checking
-   
+  //Creating objects for collision detection
   collision_detection::CollisionRequest collision_request;
   collision_detection::CollisionResult collision_result;
-
+ 
   collision_request.contacts = true;
   collision_request.max_contacts = 1000; 
 
@@ -273,9 +272,8 @@ if(flag==1)
              it->first.second.c_str());
   }
   
-  
- // Find IK if no collision occurs
-  
+  // Find IK if no collision occurs
+ 
  if(!collision_result.collision)
  
  {
@@ -330,77 +328,49 @@ if(flag==1)
   
   bool check;
   check=group.asyncExecute(my_plan1);
-  sleep(3.0);
+  //sleep(3.0);
   ROS_INFO("Executed trajectory %s",check?"SUCCEDED":"FAILED");
-   
-   
-   
-   //If Ik solution found, send it to joints
-   
+      
+    /* //If Ik solution found, send it to joints
    std_msgs::Float64 msg1,msg2,msg3,msg4,msg5,msg6;
-  
    ros::Publisher joint1 = n.advertise<std_msgs::Float64>("/joint1_controller/command", 1);
-   
    ros::Publisher joint2 = n.advertise<std_msgs::Float64>("/joint2_controller/command", 1);
-   
    ros::Publisher joint3 = n.advertise<std_msgs::Float64>("/joint3_controller/command", 1);
-   
    ros::Publisher joint4 = n.advertise<std_msgs::Float64>("/joint4_controller/command", 1);
-   
    ros::Publisher joint5 = n.advertise<std_msgs::Float64>("/joint5_controller/command", 1);
-   
    ros::Publisher joint6 = n.advertise<std_msgs::Float64>("/joint6_controller/command", 1);
-    int k=0,i;
+    //int k=0,i;
   
-   /*ros::Rate loop_rate(2);
+    ros::Rate loop_rate(2);
 	for(int i=0; i<6; i++)
 	{
 	   k=i*0.1;
 	   
 	  //ROS_INFO("k= %f",k );
-	 
-      msg1.data = joint_values[0];
-    
+	  msg1.data = joint_values[0];
       msg2.data = joint_values[1];
-    
       msg3.data = joint_values[2];
-    
       msg4.data = joint_values[3];
-    
       msg5.data = joint_values[4];
-    
       msg6.data = joint_values[5];
-      
-       
-     
+          
       joint1.publish(msg1);
-    
       joint2.publish(msg2);
-    
       joint3.publish(msg3);
-    
       joint4.publish(msg4);
-      
       joint5.publish(msg5);
-       
       joint6.publish(msg6);
-
      
-   
-     loop_rate.sleep();
+      loop_rate.sleep();
       }*/
      } 
    else
    {
      ROS_INFO("Did not find IK solution");
    } 
-    
-   }
+  }
  }
 }
-
- 
  ros::shutdown(); 
- 
  return 0;
 }
