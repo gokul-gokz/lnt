@@ -7,7 +7,7 @@ project(cool400_tests)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface)
+find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface message_generation)
 
 
 ## System dependencies are found with CMake's conventions
@@ -44,11 +44,11 @@ find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   joint_control.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -65,10 +65,10 @@ find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -117,16 +117,18 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(kinematic_model_tutorial_cool400 src/kinematic_model_tutorial.cpp)
-target_link_libraries(kinematic_model_tutorial_cool400 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(lnt_atp src/lnt_atp.cpp)
+target_link_libraries(lnt_atp ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
 
 add_executable(ros_api_tutorial_cool400 src/ros_api_tutorial.cpp)
 target_link_libraries(ros_api_tutorial_cool400 ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-#add_executable(cartesian src/cartesian.cpp)
-#target_link_libraries(cartesian ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+add_executable(constraints src/kinematic_model_tutorial.cpp)
+target_link_libraries(constraints ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
-install(TARGETS  kinematic_model_tutorial_cool400 ros_api_tutorial_cool400 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS  constraints lnt_atp ros_api_tutorial_cool400 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 ## Declare a C++ library
