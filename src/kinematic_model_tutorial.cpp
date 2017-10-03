@@ -158,21 +158,21 @@ int main(int argc, char **argv)
   
   // Initial postion
   
-  /*joint_values[0] = -2.351592547828688;
+  joint_values[0] = -2.351592547828688;
   joint_values[1] = -0.8283496254582462;
   joint_values[2] = 1.8177672336444848;
   joint_values[3] = -0.26691265709210155;
   joint_values[4] = 0.7976700097005334;
-  joint_values[5] = 0.4049709280018093;*/
+  joint_values[5] = 0.4049709280018093;
   
   
   //Assigning joint values subscribed from joint states to joint values vector 
-  joint_values[0] = joint_val[0];
+  /*joint_values[0] = joint_val[0];
   joint_values[1] = joint_val[1];
   joint_values[2] = joint_val[2];
   joint_values[3] = joint_val[3];
   joint_values[4] = joint_val[4];
-  joint_values[5] = joint_val[5];
+  joint_values[5] = joint_val[5];*/
   
   //Creating kinematic state for ik and fk calculation
   kinematic_state->setJointGroupPositions(joint_model_group, joint_values);
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
   current_state.setJointGroupPositions(joint_model_group, joint_values);
   
   //Find the FK for current state
-  const Eigen::Affine3d &end_effector_state = kinematic_state->getGlobalLinkTransform("link6");
+  const Eigen::Affine3d &end_effector_state = kinematic_state->getGlobalLinkTransform("link_6");
   ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
   ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
   

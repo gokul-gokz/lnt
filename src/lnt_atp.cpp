@@ -56,7 +56,7 @@
 #include <ros/ros.h>
 
 #include <math.h>
-
+#include "Quat.h"
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 #include <cmath>

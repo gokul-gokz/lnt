@@ -7,7 +7,7 @@ project(cool400_tests)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface message_generation)
+find_package(catkin REQUIRED COMPONENTS moveit_ros_planning_interface message_generation moveit_visual_tools)
 
 
 ## System dependencies are found with CMake's conventions
@@ -118,7 +118,7 @@ include_directories(
 )
 
 
-add_executable(lnt_atp src/lnt_atp.cpp)
+add_executable(lnt_atp src/lnt_atp1_final.cpp)
 target_link_libraries(lnt_atp ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 
