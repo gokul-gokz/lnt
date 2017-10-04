@@ -68,8 +68,8 @@
 float joint_val[6];
 
 //variable for storing safety limits for each joints
-double max[6] = {180,0,180,120,90,180};
-double min[6] = {-180,-180,0,-120,-90,-180};
+double max[6] = {3.14,0,3.14,2.09,1.57,3.14};
+double min[6] = {-3.14,-3.14,0,-2.09,-1.57,-3.14};
 
 //Safety limit check function
 bool safety_check(int joint, double position)
@@ -199,6 +199,10 @@ int main(int argc, char **argv)
 	 std::cout<<"Enter Angles(Degrees) for each joint successively";
 	 std::cin>>position[0].data>>position[1].data>>position[2].data>>position[3].data>>position[4].data>>position[5].data;
 	 
+	 for(int i=0;i<6;i++)
+	 {
+	  position[i].data = (position[i].data *3.14)/180;
+     } 
 	 
 		 
 	  //Create a robotstate object and store the current state information(position/accleration/velocity)
@@ -445,8 +449,8 @@ int main(int argc, char **argv)
           //std::cout << "Euler from quaternion in roll, pitch, yaw"<< std::endl << euler << std::endl;
           
           alpha= alpha+euler[0];
-          beta= beta+euler[1];
-          gama=gama+euler[2];
+          beta= beta+euler[2];
+          gama=gama+euler[1];
           
 	     		  
 		  //Converting Euler angle representation to Quaternion
