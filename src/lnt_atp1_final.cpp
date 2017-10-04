@@ -68,20 +68,17 @@
 float joint_val[6];
 
 //variable for storing safety limits for each joints
-double max[7] = {0,250950,250950,0,101265,75950,151900};
-double min[7] = {0,-250950,0,-250950,-101265,-75950,-151900};
-//variable for getting joint number and angle
-
+double max[6] = {180,0,180,120,90,180};
+double min[6] = {-180,-180,0,-120,-90,-180};
 
 //Safety limit check function
 bool safety_check(int joint, double position)
 {
-  if ((position>min[joint]) && (position<max[joint]))
+  if ((position>=min[joint]) && (position<=max[joint]))
     return true;
   else
     return false;
 }
-	  
 
 //Subscriber callback function for publishing values
 void joint_states_Callback(const sensor_msgs::JointState::ConstPtr& jointstates)
@@ -128,17 +125,12 @@ int main(int argc, char **argv)
   
   // Visualization
   // ^^^^^^^^^^^^^
-  //
-  // The package MoveItVisualTools provides many capabilties for visualizing objects, robots,
-  // and trajectories in Rviz as well as debugging tools such as step-by-step introspection of a script
+  // Adding visualization tools
   namespace rvt = rviz_visual_tools;
   moveit_visual_tools::MoveItVisualTools visual_tools("base_link");
   visual_tools.deleteAllMarkers();
   
-  // Remote control is an introspection tool that allows users to step through a high level script
-  // via buttons and keyboard shortcuts in Rviz
-  visual_tools.loadRemoteControl();
-
+  
   // Rviz provides many types of markers, in this demo we will use text, cylinders, and spheres
   Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
   text_pose.translation().z() = 0.75; // above head of PR2
@@ -154,14 +146,24 @@ int main(int argc, char **argv)
   std::cout<<"Enter packet code";
   std::cin>>packt;
   
-  //Packet data:1 - Publishing individual joint commands
+  //Packet data:5 - Publishing individual joint commands
   if(packt == 5)
   {
+	  //variable for storing joint angles(radians) 
 	  std_msgs::Float64 position; 
+	  
+	  //variable for storing the joint number
 	  int joint_num;
-	  std::cout<<"Enter the joint number and position(radians):";
+	  
+	  std::cout<<"Enter the joint number and Angles(Degrees):";
 	  std::cin>>joint_num>>position.data;
-	  	  
+	  
+	  //Radians Conversion
+	  position.data = (position.data *3.14)/180;
+	  
+	  //Check safety limits and execute
+	 if(safety_check(joint_num,position.data))  
+     {
       //Create a robotstate object and store the current state information(position/accleration/velocity)
       moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
   
@@ -183,16 +185,20 @@ int main(int argc, char **argv)
       visual_tools.trigger();
 	  
 	  //Execute in real hardware
-	  move_group.move();  
-	 
+	  move_group.move(); 
+	 }
+	 else
+	 {
+		 std::cout<<"Value:Out of range";	 
     }
-   
+   }
    //Packet data:2 - Publishing multiple joint commands at same time
    else if(packt==6)
    {
 	 std_msgs::Float64 position[6];
-	 std::cout<<"Enter position for each joint successively";
+	 std::cout<<"Enter Angles(Degrees) for each joint successively";
 	 std::cin>>position[0].data>>position[1].data>>position[2].data>>position[3].data>>position[4].data>>position[5].data;
+	 
 	 
 		 
 	  //Create a robotstate object and store the current state information(position/accleration/velocity)
@@ -205,32 +211,35 @@ int main(int argc, char **argv)
       // Modify the joint state accordingly
       for(int i=0;i<6;i++)
       {
-       joint_group_positions[i] = position[i].data;
+	   if(safety_check(i,position[i].data))
+	   {	  
+        joint_group_positions[i] = position[i].data;
+	   }
+	   else
+	   {
+		   std::cout<<"Joint"<<i<<" out of range"<<std::endl;
+       }
       }
-      
-      
-      
       move_group.setJointValueTarget(joint_group_positions);
       moveit::planning_interface::MoveGroupInterface::Plan my_plan;
       success = move_group.plan(my_plan);
-      ROS_INFO_NAMED("Executing joint space goal %s", success ? "" : "FAILED");
+      ROS_INFO_NAMED("Executing joint space goal(Multiple Joints) %s", success ? "" : "FAILED");
 
       // Visualize the plan in Rviz
       visual_tools.deleteAllMarkers();
-      visual_tools.publishText(text_pose, "Joint Space Goal", rvt::WHITE, rvt::XLARGE);
+      visual_tools.publishText(text_pose, "Joint Space Goal(Multiple)", rvt::WHITE, rvt::XLARGE);
       visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
       visual_tools.trigger();
 	  
 	  //Execute in real hardware
 	  move_group.move();  
-	          
-	}
-  
-  
+	  }
+   
   else if(packt==1 || packt ==2)
   { 
-  char mode;  
-  float x,y,z,alpha,beta,gama;
+   char mode;  
+   float x,y,z,alpha,beta,gama;
+   float r,theta;
   
 	if(packt==1)
 	{
@@ -246,24 +255,25 @@ int main(int argc, char **argv)
 		  std::cin>>beta;
 		  std::cout<<"Enter yaw increment:";
 		  std::cin>>gama;	
+		  
+		  //Input endeffector mode(none/orientation/position)
+	      std::cout<<"Enter end_effector mode";
+	      std::cin>>mode;
 	  }
 	  else
 	  {
-		  std::cout<<"Enter alpha:";
-		  std::cin>>alpha;
-		  std::cout<<"Enter beta:";
-		  std::cin>>beta;
-		  std::cout<<"Enter gamma:";
-		  std::cin>>gama;
-		  
-		  //Cylindrical to cartesian conversiom
-		  x= alpha*cos(beta);
-	      y= alpha*sin(beta);
-	      z=z;
+		  std::cout<<"Enter r:";
+		  std::cin>>r;
+		  std::cout<<"Enter theta:";
+		  std::cin>>theta;
+		  std::cout<<"Enter pi:";
+		  std::cin>>z;
+		  //Cylindrical to cartesian conversion
+		  x= r*cos(theta);
+	      y= r*sin(theta);
+	      mode = '1';
 	   }
-	//Input endeffector mode(none/orientation/position)
-	std::cout<<"Enter end_effector mode";
-	std::cin>>mode;
+	
 	
 	
 	// Planning to a start position
@@ -284,13 +294,13 @@ int main(int argc, char **argv)
     //planning to the corresponding setpose target
     bool success = move_group.plan(my_plan);
      
-    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+    ROS_INFO_NAMED("Visualizing Start Pose %s", success ? "" : "FAILED");
 
     // Visualizing plans
     // ^^^^^^^^^^^^^^^^^
     // We can also visualize the plan as a line with markers in Rviz.
-    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 as trajectory line");
-    visual_tools.publishAxisLabeled(start_pose, "pose1");
+    ROS_INFO("Visualizing plan 1 as trajectory line");
+    visual_tools.publishAxisLabeled(start_pose, "Start_pose");
     visual_tools.publishText(text_pose, "Start_pose", rvt::WHITE, rvt::XLARGE);
     visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
     visual_tools.trigger();
@@ -298,13 +308,13 @@ int main(int argc, char **argv)
 
     //Executing in the real hardware
     move_group.move(); 
-    ROS_INFO("Reached Start_position");
-	
-	switch(mode){
+    
+    //End Effector Mode selection
+   	switch(mode){
 		case '1':
 		{
 		    
-	   // Planning with orientation Constraints
+	   //Planning with orientation Constraints
         moveit_msgs::OrientationConstraint ocm;
 		ocm.link_name = "link_6";
 		ocm.header.frame_id = "base_link";
@@ -317,14 +327,15 @@ int main(int argc, char **argv)
 		ocm.absolute_z_axis_tolerance = 0.1;
 		ocm.weight = 0.5;
 
-		// Now, set it as the path constraint for the group.
+		//Now, set it as the path constraint for the group.
 		moveit_msgs::Constraints test_constraints;
 		test_constraints.orientation_constraints.push_back(ocm);
 		move_group.setPathConstraints(test_constraints);
 	
-	    //Get the current state and set it as start state
-		robot_state::RobotState start_state(*move_group.getCurrentState());
-	
+	    //Get the current state and set it as start state -- (For Actual Hardware)
+		//robot_state::RobotState start_state(*move_group.getCurrentState());
+	    //move_group.setStartState(start_state);
+     
 		geometry_msgs::Pose target_pose;
 		target_pose.position.x = start_pose.position.x+x;
 		target_pose.position.y = start_pose.position.y+y;
@@ -333,8 +344,7 @@ int main(int argc, char **argv)
 		target_pose.orientation.y =  0.424772096872;
 		target_pose.orientation.z = -0.506079028547;
 		target_pose.orientation.w =  0.559276160998;
-		move_group.setStartState(start_state);
-     
+		
 		move_group.setPoseTarget(target_pose);
 		move_group.setPlanningTime(5.0);
 			
@@ -346,14 +356,14 @@ int main(int argc, char **argv)
 		visual_tools.deleteAllMarkers();
 		visual_tools.publishAxisLabeled(start_pose, "start");
 		visual_tools.publishAxisLabeled(target_pose, "goal");
-		visual_tools.publishText(text_pose, "Constrained Goal", rvt::WHITE, rvt::XLARGE);
+		visual_tools.publishText(text_pose, "Orientation constrained Goal", rvt::WHITE, rvt::XLARGE);
 		visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
 		visual_tools.trigger();
   
  
 		//Executing in real robot
 		move_group.move(); 
-		ROS_INFO("Reached Constrained_goal_position");
+		
   
 		// Clearing path constraint
 		move_group.clearPathConstraints();
@@ -362,7 +372,6 @@ int main(int argc, char **argv)
 	    
 	    case '0':
 	    {
-			
 		  //Assigning the start pose orientation into an quaternion 	
 		  Eigen::Matrix3f mat1;
           Eigen::Quaternionf q1(mat1);
@@ -371,21 +380,21 @@ int main(int argc, char **argv)
           q1.z()=	start_pose.orientation.z;
           q1.w()=	start_pose.orientation.w;
 			
-		  //converting quaternion to euler angles
+		  //Converting quaternion to euler angles
 		  auto euler = q1.toRotationMatrix().eulerAngles(0,1,2);
-          std::cout << "Euler from quaternion in roll, pitch, yaw"<< std::endl << euler << std::endl;
+          //std::cout << "Euler from quaternion in roll, pitch, yaw"<< std::endl << euler << std::endl;
           
           alpha= alpha+euler[0];
-          beta= beta+euler[1];
-          gama=gama+euler[2];
+          beta= beta+euler[2];
+          gama=gama+euler[1];
           
 	     		  
 		  //Converting Euler angle representation to Quaternion
 		  Eigen::Matrix3f mat;
           Eigen::Quaternionf q(mat);
           q = Eigen::AngleAxisf(alpha, Eigen::Vector3f::UnitX())* Eigen::AngleAxisf(beta,  Eigen::Vector3f::UnitY())* Eigen::AngleAxisf(gama, Eigen::Vector3f::UnitZ());
-	      std::cout<<std::endl<<q.x()<<std::endl<<q.y()<<std::endl<<q.z()<<std::endl<<q.w();
-
+	      
+          //Apply the corresponding incrementation
 		  geometry_msgs::Pose target_pose;
 		  target_pose.position.x = start_pose.position.x+x;
 		  target_pose.position.y = start_pose.position.y+y;
@@ -405,7 +414,7 @@ int main(int argc, char **argv)
 		  //planning to the corresponding setpose target
 		  bool success = move_group.plan(my_plan);
      
-		  ROS_INFO_NAMED("Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+		  ROS_INFO_NAMED("Visualizing plan (unconstrained goal) %s", success ? "" : "FAILED");
 
 		  // Visualizing plans
           // ^^^^^^^^^^^^^^^^^
@@ -418,22 +427,33 @@ int main(int argc, char **argv)
 
      	   //Executing in the real hardware
            move_group.move(); 
-           ROS_INFO("Reached the Position without constraints");
-		  
-		  
-		 }
+          }
 		  break;
 		  
 		case '2':
 		{
-		 
-		  
+		  //Assigning the start pose orientation into an quaternion 	
+		  Eigen::Matrix3f mat1;
+          Eigen::Quaternionf q1(mat1);
+          q1.x()=	start_pose.orientation.x;
+          q1.y()=	start_pose.orientation.y;
+          q1.z()=	start_pose.orientation.z;
+          q1.w()=	start_pose.orientation.w;
+			
+		  //Converting quaternion to euler angles
+		  auto euler = q1.toRotationMatrix().eulerAngles(0,1,2);
+          //std::cout << "Euler from quaternion in roll, pitch, yaw"<< std::endl << euler << std::endl;
+          
+          alpha= alpha+euler[0];
+          beta= beta+euler[1];
+          gama=gama+euler[2];
+          
+	     		  
 		  //Converting Euler angle representation to Quaternion
 		  Eigen::Matrix3f mat;
           Eigen::Quaternionf q(mat);
           q = Eigen::AngleAxisf(alpha, Eigen::Vector3f::UnitX())* Eigen::AngleAxisf(beta,  Eigen::Vector3f::UnitY())* Eigen::AngleAxisf(gama, Eigen::Vector3f::UnitZ());
-	      std::cout<<std::endl<<q.x()<<std::endl<<q.y()<<std::endl<<q.z()<<std::endl<<q.w();
-		  
+	     		  
 		  //Set Position constraints
 		  moveit_msgs::PositionConstraint pcm;
 	      pcm.link_name = "link_6";
@@ -441,145 +461,45 @@ int main(int argc, char **argv)
           pcm.target_point_offset.x =  0.0309533713758;
 	      pcm.target_point_offset.y =  -0.708873151926;
 	      pcm.target_point_offset.z =   0.392867713827; 
-	      pcm.weight = 0.5;
+	      pcm.weight = 1.0;
 	
 	      moveit_msgs::Constraints pos_constraints;
 	      pos_constraints.position_constraints.push_back(pcm);
 	      move_group.setPathConstraints(pos_constraints);
-	      
-	      
+	          
 		  
 		  geometry_msgs::Pose target_pose;
 		  target_pose.position.x = start_pose.position.x;
 		  target_pose.position.y = start_pose.position.y;
 		  target_pose.position.z =   start_pose.position.z; 
-		  target_pose.orientation.x =  start_pose.orientation.x+q.x();
-		  target_pose.orientation.y = start_pose.orientation.y+q.y();
-		  target_pose.orientation.z = start_pose.orientation.z+q.z();
-		  target_pose.orientation.w =  start_pose.orientation.w;
+		  target_pose.orientation.x =  q.x();
+		  target_pose.orientation.y = q.y();
+		  target_pose.orientation.z = q.z();
+		  target_pose.orientation.w = q.w();
 		  
 		  				  
 		  //Creating a plan object
 		  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 		  
 		  move_group.setPoseTarget(target_pose);
-		  move_group.setPlanningTime(2.0);
+		  move_group.setPlanningTime(4.0);
    
 		  //planning to the corresponding setpose target
 		  bool success = move_group.plan(my_plan);
      
-		  ROS_INFO_NAMED("Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+		  ROS_INFO_NAMED("Visualizing plan 1 (pose constrained goal) %s", success ? "" : "FAILED");
 
-		  // Visualizing plans
-          // ^^^^^^^^^^^^^^^^^
-          // We can also visualize the plan as a line with markers in Rviz.
-          ROS_INFO_NAMED("tutorial", "Visualizing plan 1 as trajectory line");
-		  visual_tools.publishAxisLabeled(start_pose, "Unconstrained_pose");
-		  visual_tools.publishText(text_pose, "Start_pose", rvt::WHITE, rvt::XLARGE);
-          visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
-          visual_tools.trigger();
-
-     	   //Executing in the real hardware
-           move_group.move(); 
-                     
-	      
-	  }
-		  break;
+   	      //Executing in the real hardware
+          move_group.move(); 
+         }
+         break;
+		
 		default:
 		  std::cout<<"Invalid input";
 	  }  
-			  
-   }
-
-else if(packt==32)
-{
-	// Planning to a home position
-    geometry_msgs::Pose start_pose;
-    start_pose.position.x = 0.0309533713758;
-    start_pose.position.y =-0.708873151926;
-    start_pose.position.z =   0.392867713827; 
-    start_pose.orientation.x =   0.500662419524;
-    start_pose.orientation.y =  0.424772096872;
-    start_pose.orientation.z = -0.506079028547;
-    start_pose.orientation.w =  0.559276160998;
-     
-    move_group.setPoseTarget(start_pose);
-
-    //Creating a plan object
-    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-   
-    //planning to the corresponding setpose target
-    bool success = move_group.plan(my_plan);
-     
-    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
-
-    // Visualizing plans
-    // ^^^^^^^^^^^^^^^^^
-    // We can also visualize the plan as a line with markers in Rviz.
-    ROS_INFO_NAMED("tutorial", "Visualizing plan 1 as trajectory line");
-    visual_tools.publishAxisLabeled(start_pose, "pose1");
-    visual_tools.publishText(text_pose, "Start_pose", rvt::WHITE, rvt::XLARGE);
-    visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
-    visual_tools.trigger();
-         
-
-    //Executing in the real hardware
-    move_group.move(); 
-    ROS_INFO("Reached Start_position");
-	
-
-	moveit_msgs::PositionConstraint pcm;
-	pcm.link_name = "link_6";
-	pcm.header.frame_id = "base_link";
-	pcm.target_point_offset.x =  0.0309533713758;
-	pcm.target_point_offset.y =  -0.708873151926;
-	pcm.target_point_offset.z =   0.392867713827; 
-	pcm.weight = 0.5;
-	
-	moveit_msgs::Constraints pos_constraints;
-	pos_constraints.position_constraints.push_back(pcm);
-	move_group.setPathConstraints(pos_constraints);
-	
-	robot_state::RobotState start_state(*move_group.getCurrentState());
-	geometry_msgs::Pose target_pose;
-    target_pose.position.x = 0.0309533713758;
-    target_pose.position.y =   -0.708873151926;
-    target_pose.position.z =   0.392867713827; 
-    target_pose.orientation.x =  start_pose.orientation.x;
-	target_pose.orientation.y = start_pose.orientation.y;
-	target_pose.orientation.z = start_pose.orientation.z;
-	target_pose.orientation.w = 1;
-    move_group.setStartState(start_state);
-     
-    //Creating a plan object
-    //moveit::planning_interface::MoveGroupInterface::Plan my_plan; 
-     
-    move_group.setPoseTarget(target_pose);
-    move_group.setPlanningTime(5.0);
-    //bool success;
-    success = move_group.plan(my_plan);
-    
-     ROS_INFO_NAMED("Visualizing Position (constraints) %s", success ? "" : "FAILED");
-    
-    // Visualize the plan in Rviz
-    visual_tools.deleteAllMarkers();
-    visual_tools.publishAxisLabeled(start_pose, "start");
-    visual_tools.publishAxisLabeled(target_pose, "goal");
-    visual_tools.publishText(text_pose, "Constrained Goal", rvt::WHITE, rvt::XLARGE);
-    visual_tools.publishTrajectoryLine(my_plan.trajectory_, joint_model_group);
-    visual_tools.trigger();
-  
- 
-  //Exexuting in real robot
-    
-   ROS_INFO("Reached Constrained_goal_position");
-  
-  // When done with the path constraint be sure to clear it.
-  move_group.clearPathConstraints();
-    
-    move_group.move(); 
-	
-}
+	}
+	else
+	  std::cout<<"Invalid Input";
 
   ros::Rate loop_rate(2);
   loop_rate.sleep(); 
