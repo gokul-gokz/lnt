@@ -327,15 +327,7 @@ int main(int argc, char **argv)
     move_group.move(); 
     ROS_INFO("Reached home_position");
     
-   /* robot_state::RobotState start_state(*move_group.getCurrentState());
-    geometry_msgs::Pose target_pose;
-    target_pose.position.x = -0.0532916332999;
-    target_pose.position.y =   0.0645766065631;
-    target_pose.position.z =   0.372744202366; 
-    target_pose.orientation.x =  0.00811752067547;
-    target_pose.orientation.y =  0.0092369720666;
-    target_pose.orientation.z = -0.705957432088;
-    target_pose.orientation.w = 0.708147504609;*/
+   
     
 
   // Planning with Path Constraints

@@ -282,13 +282,27 @@ int main(int argc, char **argv)
 	
 	// Planning to a start position
     geometry_msgs::Pose start_pose;
-    start_pose.position.x = 0.0309533713758;
-    start_pose.position.y =-0.708873151926;
-    start_pose.position.z =   0.392867713827; 
-    start_pose.orientation.x =  0.500662419524;
-    start_pose.orientation.y =  0.424772096872;
-    start_pose.orientation.z = -0.506079028547;
-    start_pose.orientation.w =  0.559276160998;
+    //moveit::planning_interface::MoveGroup *group1; 
+    //group1 = new moveit::planning_interface::MoveGroup("manipulator");
+    //group1->setEndEffectorLink("gripper_tool_frame");
+    geometry_msgs::PoseStamped current_pose = move_group.getCurrentPose();
+    
+    std::cout<<"Current_position"<<current_pose.pose.position.x;
+    std::cout<<"Current_position"<<current_pose.pose.position.y;
+    std::cout<<"Current_position"<<current_pose.pose.position.z;
+    std::cout<<"Current_position"<<current_pose.pose.orientation.x;
+    std::cout<<"Current_position"<<current_pose.pose.orientation.y;
+    std::cout<<"Current_position"<<current_pose.pose.orientation.z;
+    std::cout<<"Current_position"<<current_pose.pose.orientation.w;
+    
+    
+    start_pose.position.x = current_pose.pose.position.x;
+    start_pose.position.y = current_pose.pose.position.y;
+    start_pose.position.z = current_pose.pose.position.z; 
+    start_pose.orientation.x =  current_pose.pose.orientation.x;
+    start_pose.orientation.y = current_pose.pose.orientation.y;
+    start_pose.orientation.z = current_pose.pose.orientation.z;
+    start_pose.orientation.w = current_pose.pose.orientation.w;
      
     move_group.setPoseTarget(start_pose);
 
@@ -320,12 +334,12 @@ int main(int argc, char **argv)
 		    
 	   //Planning with orientation Constraints
         moveit_msgs::OrientationConstraint ocm;
-		ocm.link_name = "link_6";
+		ocm.link_name = "gripper_tool_frame";
 		ocm.header.frame_id = "base_link";
-		ocm.orientation.x =   0.500662419524;
-		ocm.orientation.y = 0.424772096872;
-		ocm.orientation.z = -0.506079028547;
-		ocm.orientation.w = 0.559276160998;
+		ocm.orientation.x =  start_pose.orientation.x;
+        ocm.orientation.y = start_pose.orientation.y;
+        ocm.orientation.z = start_pose.orientation.z;
+        ocm.orientation.w =  start_pose.orientation.w;
 		ocm.absolute_x_axis_tolerance = 0.1;
 		ocm.absolute_y_axis_tolerance = 0.1;
 		ocm.absolute_z_axis_tolerance = 0.1;
@@ -344,10 +358,10 @@ int main(int argc, char **argv)
 		target_pose.position.x = start_pose.position.x+x;
 		target_pose.position.y = start_pose.position.y+y;
 		target_pose.position.z =   start_pose.position.z+z; 
-		target_pose.orientation.x =   0.500662419524;
-		target_pose.orientation.y =  0.424772096872;
-		target_pose.orientation.z = -0.506079028547;
-		target_pose.orientation.w =  0.559276160998;
+		target_pose.orientation.x =  start_pose.orientation.x;
+        target_pose.orientation.y = start_pose.orientation.y;
+        target_pose.orientation.z = start_pose.orientation.z;
+        target_pose.orientation.w = start_pose.orientation.w;
 		
 		move_group.setPoseTarget(target_pose);
 		move_group.setPlanningTime(5.0);
@@ -460,12 +474,12 @@ int main(int argc, char **argv)
 	     		  
 		  //Set Position constraints
 		  moveit_msgs::PositionConstraint pcm;
-	      pcm.link_name = "link_6";
+	      pcm.link_name = "gripper_tool_frame";
 	      pcm.header.frame_id = "base_link";
-          pcm.target_point_offset.x =  0.0309533713758;
-	      pcm.target_point_offset.y =  -0.708873151926;
-	      pcm.target_point_offset.z =   0.392867713827; 
-	      pcm.weight = 1.0;
+          pcm.target_point_offset.x = start_pose.position.x;
+	      pcm.target_point_offset.y =  start_pose.position.y;
+	      pcm.target_point_offset.z =  start_pose.position.z; 
+	      pcm.weight = 0.5;
 	
 	      moveit_msgs::Constraints pos_constraints;
 	      pos_constraints.position_constraints.push_back(pcm);
@@ -486,7 +500,7 @@ int main(int argc, char **argv)
 		  moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 		  
 		  move_group.setPoseTarget(target_pose);
-		  move_group.setPlanningTime(4.0);
+		  move_group.setPlanningTime(14.0);
    
 		  //planning to the corresponding setpose target
 		  bool success = move_group.plan(my_plan);
